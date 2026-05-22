@@ -53,4 +53,8 @@ start.bat
 
 # Python 缓存
 __pycache__/
-*.pycCLAUDE.md
+*.pyc
+CLAUDE.md
+
+# agent 本地配置
+AGENTS.md
