@@ -36,6 +36,21 @@ yarn-error.log*
 # vercel
 .vercel
 
+# claude code (个人记忆 / 设置)
+.claude/
+
+# 内部开发日志 / 计划
+DEVLOG.md
+DEV_REPORT.md
+PLANS.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 本地启动脚本
+start.bat
+
+# Python 缓存
+__pycache__/
+*.pyc

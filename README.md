@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Doc Format Platform — 文档格式化平台
 
-## Getting Started
+一键格式化 Word 文档。上传 .docx 或直接输入文字，选择模板或自定义格式，生成排版规范的文档。
 
-First, run the development server:
+## 功能
+
+- **双输入模式** — 上传 docx 文件或直接输入文字
+- **智能标题检测** — 自动识别章节标题层级（支持编号模式、Word 样式名）
+- **预设模板** — 学术论文、商业报告、政府公文、小说散文，一键套用
+- **自定义配置** — 字体、字号（中文体系 + pt）、颜色、间距、对齐、首行缩进等
+- **动态元素管理** — 增删、拖拽排序、复制、批量编辑文档元素
+- **页面设置** — 页边距、页眉文字、自动章节页眉、页码
+- **格式预览** — 实时查看套用格式后的效果
+- **撤销/重做** — Ctrl+Z / Ctrl+Shift+Z
+- **自定义模板** — 保存常用配置，支持导入/导出 JSON
+- **中英文双语** — 完整界面国际化
+- **暗色/亮色主题** — 手动切换，持久化偏好
+- **自定义字体** — 添加系统中已安装的字体
+
+## 技术栈
+
+| 层 | 技术 |
+|---|---|
+| 前端 | Next.js 16 + TypeScript + Tailwind CSS v4 + shadcn/ui |
+| 后端引擎 | Python 3.13 + python-docx |
+| 部署 | Node.js + Python 双运行时 |
+
+## 快速开始
 
 ```bash
+# 1. 安装依赖
+npm install
+pip install python-docx
+
+# 2. 启动开发服务器
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# 3. 打开浏览器
+# http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 项目结构
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+├── src/
+│   ├── app/
+│   │   ├── page.tsx          # 主页面
+│   │   ├── layout.tsx        # 根布局
+│   │   ├── globals.css       # 全局样式
+│   │   └── api/
+│   │       ├── format/route.ts    # 格式化 API
+│   │       └── preview/route.ts   # 文档预览 API
+│   └── lib/
+│       └── lang.ts           # 中英文翻译
+├── engine/
+│   └── doc_format_agent.py   # 文档格式化引擎
+└── README.md
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 工作原理
 
-## Learn More
+1. **上传文档** — 支持 .docx 文件上传或直接粘贴文字
+2. **智能分析** — 3-Pass 算法自动检测文档结构（标题层级、编号模式、样式映射）
+3. **应用格式** — 根据预设或自定义配置，设置字体、字号、颜色、间距、对齐等
+4. **生成输出** — 生成格式化后的 .docx 文件供下载
 
-To learn more about Next.js, take a look at the following resources:
+## License
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
