@@ -199,6 +199,18 @@ const translations: Record<string, Record<Lang, string>> = {
   // ── Preview header ──
   "preview.header": { zh: "页眉", en: "Header" },
   "preview.page": { zh: "页码", en: "Page" },
+
+  // ── Chat Panel ──
+  "chat.title": { zh: "AI 排版助手", en: "AI Format Assistant" },
+  "chat.welcome": { zh: "你好！我是排版助手。告诉我你想怎么格式化文档，比如「排成学术论文格式」或「标题用黑体加粗」", en: "Hi! I'm your format assistant. Tell me how you'd like to format your document, e.g. \"Academic essay style\" or \"Bold headings\"" },
+  "chat.placeholder": { zh: "输入排版需求…", en: "Describe your formatting…" },
+  "chat.empty_hint": { zh: "输入排版需求，AI 帮你配置格式", en: "Describe your formatting needs, AI will configure it for you" },
+  "chat.collapse": { zh: "折叠聊天面板", en: "Collapse chat panel" },
+  "chat.expand": { zh: "展开聊天面板", en: "Expand chat panel" },
+  "chat.input_aria": { zh: "聊天输入", en: "Chat input" },
+  "chat.send_aria": { zh: "发送", en: "Send" },
+  "chat.message_aria": { zh: "聊天消息", en: "Chat messages" },
+  "chat.ai_response": { zh: "已解析你的排版需求，配置已更新到中间面板，你可以手动微调后点击格式化。", en: "I've parsed your formatting needs. The configuration has been updated in the middle panel. You can fine-tune it manually before formatting." },
 };
 
 export function t(key: string, lang: Lang, params?: Record<string, string>): string {

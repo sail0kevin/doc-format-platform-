@@ -1251,8 +1251,8 @@ export default function Home() {
             <button
               onClick={() => setChatCollapsed(false)}
               className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              title="展开聊天面板"
-              aria-label="展开聊天面板"
+              title={loc("chat.expand")}
+              aria-label={loc("chat.expand")}
             >
               <PanelLeft className="w-4 h-4" />
             </button>
@@ -1271,7 +1271,7 @@ export default function Home() {
           <button onClick={() => setLang(lang === "zh" ? "en" : "zh")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border transition-all">
             <Globe className="w-3.5 h-3.5" />
-            <span>{lang === "zh" ? "English" : "中文"}</span>
+            <span>{lang === "zh" ? "EN" : "中文"}</span>
           </button>
         </div>
       </header>
@@ -1280,7 +1280,7 @@ export default function Home() {
       <div className="flex-1 overflow-hidden">
         <ThreePanelLayout
           left={
-            <ChatPanel onToggle={() => setChatCollapsed((prev) => !prev)} />
+            <ChatPanel onToggle={() => setChatCollapsed((prev) => !prev)} loc={loc} />
           }
           leftCollapsed={chatCollapsed}
           middle={
