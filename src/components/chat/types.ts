@@ -4,8 +4,3 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
 }
-
-export interface ChatState {
-  messages: ChatMessage[];
-  loading: boolean;
-}

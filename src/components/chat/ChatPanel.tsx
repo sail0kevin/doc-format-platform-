@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { MessageSquare, PanelLeftClose } from "lucide-react";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
@@ -20,6 +20,13 @@ export default function ChatPanel({ onToggle }: ChatPanelProps) {
     },
   ]);
   const [loading, setLoading] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const handleSend = (text: string) => {
     const userMsg: ChatMessageType = {
@@ -32,7 +39,7 @@ export default function ChatPanel({ onToggle }: ChatPanelProps) {
     setLoading(true);
 
     // 模拟 AI 回复（后续接真实 API）
-    setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       const aiMsg: ChatMessageType = {
         id: `ai-${Date.now()}`,
         role: "assistant",
