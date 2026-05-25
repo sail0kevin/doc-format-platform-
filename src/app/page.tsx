@@ -1250,7 +1250,7 @@ export default function Home() {
     preset,
     canUndo: historyIdx > 0,
     canRedo: historyIdx < history.length - 1,
-  }), [elements, pageMargins, headerConfig, preset, historyIdx, history]);
+  }), [elements, pageMargins, headerConfig, preset, historyIdx, history.length]);
 
   const handleToolCall = useCallback((toolName: string, args: Record<string, any>) => {
     switch (toolName) {
@@ -1292,11 +1292,12 @@ export default function Home() {
         redo();
         break;
     }
-  }, []);
+  }, [applyPreset, undo, redo]);
 
   // ── UI ────────────────────────────────────────────────
   return (
-    <AgentProvider buildContext={buildContext} onToolCall={handleToolCall}>
+    <AgentProvider buildContext={buildContext} onToolCall={handleToolCall}
+      welcomeMessage={loc("chat.welcome")} errorPrefix={loc("chat.error_prefix")}>
     <div className="h-screen flex flex-col bg-background">
       {/* 顶部导航栏 */}
       <header className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-border/60">

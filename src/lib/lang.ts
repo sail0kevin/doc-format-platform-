@@ -211,6 +211,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "chat.send_aria": { zh: "发送", en: "Send" },
   "chat.message_aria": { zh: "聊天消息", en: "Chat messages" },
   "chat.ai_response": { zh: "已解析你的排版需求，配置已更新到中间面板，你可以手动微调后点击格式化。", en: "I've parsed your formatting needs. The configuration has been updated in the middle panel. You can fine-tune it manually before formatting." },
+  "chat.error_prefix": { zh: "抱歉，处理请求时出错", en: "Sorry, an error occurred while processing" },
 };
 
 export function t(key: string, lang: Lang, params?: Record<string, string>): string {

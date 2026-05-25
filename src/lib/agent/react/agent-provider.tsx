@@ -26,6 +26,10 @@ interface AgentProviderProps {
   onToolCall: (toolName: string, args: Record<string, any>) => void;
   /** System Prompt */
   systemPrompt?: string;
+  /** 欢迎消息（支持多语言），默认中文 */
+  welcomeMessage?: string;
+  /** 错误提示前缀（支持多语言），默认中文 */
+  errorPrefix?: string;
 }
 
 // ══════════════════════════════════════════════════════
@@ -40,12 +44,12 @@ const AgentContext = createContext<AgentContextValue | null>(null);
 
 const DEFAULT_SYSTEM_PROMPT = "你是文档排版助手。你通过工具帮助用户排版 Word 文档。需求明确就操作，不明确就给建议。";
 
-export function AgentProvider({ children, buildContext, onToolCall, systemPrompt }: AgentProviderProps) {
+export function AgentProvider({ children, buildContext, onToolCall, systemPrompt, welcomeMessage, errorPrefix }: AgentProviderProps) {
   const [messages, setMessages] = useState<AgentMessage[]>([
     {
       id: "welcome",
       role: "assistant",
-      content: "你好！我是 AI 排版助手。你可以告诉我排版需求，比如"排成学术论文格式"或"标题用黑体二号"。",
+      content: welcomeMessage || '你好！我是 AI 排版助手。你可以告诉我排版需求，比如「排成学术论文格式」或「标题用黑体二号」。',
       timestamp: Date.now(),
     },
   ]);
@@ -96,11 +100,12 @@ export function AgentProvider({ children, buildContext, onToolCall, systemPrompt
       };
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err: any) {
-      setError(err.message || "请求失败，请检查 LLM 服务是否可用");
+      const prefix = errorPrefix || "抱歉，处理请求时出错";
+      setError(err.message || `${prefix}。请检查 LLM 服务是否可用`);
       const errMsg: AgentMessage = {
         id: genId(),
         role: "assistant",
-        content: `抱歉，处理请求时出错：${err.message}。请检查 LLM 服务是否正常运行。`,
+        content: `${prefix}：${err.message}。请检查 LLM 服务是否正常运行。`,
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, errMsg]);
@@ -115,12 +120,12 @@ export function AgentProvider({ children, buildContext, onToolCall, systemPrompt
       {
         id: "welcome",
         role: "assistant",
-        content: "你好！我是 AI 排版助手。你可以告诉我排版需求，比如"排成学术论文格式"或"标题用黑体二号"。",
+        content: welcomeMessage || '你好！我是 AI 排版助手。你可以告诉我排版需求，比如「排成学术论文格式」或「标题用黑体二号」。',
         timestamp: Date.now(),
       },
     ]);
     setError(null);
-  }, []);
+  }, [welcomeMessage]);
 
   return (
     <AgentContext.Provider value={{ messages, sendMessage, clearMessages, isLoading, error }}>
