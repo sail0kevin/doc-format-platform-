@@ -865,7 +865,6 @@ export default function Home() {
   const [previewData, setPreviewData] = useState<ParagraphInfo[] | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState("upload");
 
   // API
   const [loading, setLoading] = useState(false);
