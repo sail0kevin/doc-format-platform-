@@ -26,7 +26,7 @@ import {
   Upload, Download, FileText, Loader2,
   ChevronDown, ChevronRight, X, Plus, Check,
   GripVertical, Copy, Save, Pencil, Trash2, Type, FileUp, Eye,
-  Undo2, Redo2, Globe
+  Undo2, Redo2, Globe, PanelLeft
 } from "lucide-react";
 import ThreePanelLayout from "@/components/layout/ThreePanelLayout";
 import ChatPanel from "@/components/chat/ChatPanel";
@@ -1247,6 +1247,16 @@ export default function Home() {
       <header className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-border/60">
         <div className="flex items-center gap-2">
           <FileText className="w-5 h-5 text-primary" />
+          {chatCollapsed && (
+            <button
+              onClick={() => setChatCollapsed(false)}
+              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title="展开聊天面板"
+              aria-label="展开聊天面板"
+            >
+              <PanelLeft className="w-4 h-4" />
+            </button>
+          )}
           <span className="text-base font-semibold">{loc("app.title")}</span>
         </div>
         <div className="flex items-center gap-1">
