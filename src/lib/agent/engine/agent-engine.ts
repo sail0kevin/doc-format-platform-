@@ -43,6 +43,11 @@ export class AgentEngine {
         break;
       }
 
+      // 如果 LLM 在调用工具的同时也有文本回复（推理过程），先保存
+      if (response.content) {
+        messages.push({ role: "assistant", content: response.content });
+      }
+
       for (const tc of response.toolCalls) {
         const tool = this.toolMap.get(tc.toolName);
         if (!tool) {
@@ -67,7 +72,7 @@ export class AgentEngine {
       }
     }
 
-    this.history = messages.slice(-this.config.maxHistoryLength);
+    this.history = messages.slice(1).slice(-this.config.maxHistoryLength);
 
     return { reply: reply || "操作完成", toolCalls };
   }
