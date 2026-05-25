@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import ThreePanelLayout from "@/components/layout/ThreePanelLayout";
 import ChatPanel from "@/components/chat/ChatPanel";
+import FloatingActionButton from "@/components/layout/FloatingActionButton";
 import { useLocale } from "@/lib/lang";
 
 // ── 类型 ──────────────────────────────────────────────────
@@ -1743,6 +1744,14 @@ export default function Home() {
           }
         />
       </div>
+
+      <FloatingActionButton
+        lang={lang}
+        onToggleLang={() => setLang(lang === "zh" ? "en" : "zh")}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        loc={loc}
+      />
     </div>
   );
 }
