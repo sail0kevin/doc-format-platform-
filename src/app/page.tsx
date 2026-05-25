@@ -22,13 +22,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Upload, Download, FileText, Loader2,
   ChevronDown, ChevronRight, X, Plus, Check,
   GripVertical, Copy, Save, Pencil, Trash2, Type, FileUp, Eye,
   Undo2, Redo2, Globe
 } from "lucide-react";
+import ThreePanelLayout from "@/components/layout/ThreePanelLayout";
+import ChatPanel from "@/components/chat/ChatPanel";
 import { useLocale } from "@/lib/lang";
 
 // ── 类型 ──────────────────────────────────────────────────
@@ -874,6 +875,7 @@ export default function Home() {
   const [errorSuggestion, setErrorSuggestion] = useState<string | null>(null);
   const [downloadFilename, setDownloadFilename] = useState("formatted");
   const { lang, setLang, loc } = useLocale();
+  const [chatCollapsed, setChatCollapsed] = useState(false);
 
   // ── 主题切换 ──────────────────────────────────────────
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -1241,48 +1243,42 @@ export default function Home() {
 
   // ── UI ────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background py-10 px-4">
-      <div className="max-w-3xl mx-auto space-y-6 pb-20">
-
-        {/* 标题 */}
-        <div className="text-center relative">
-          <div className="absolute inset-0 -top-8 -bottom-8 -mx-4 bg-gradient-to-b from-primary/[0.03] to-transparent rounded-3xl pointer-events-none" />
-          {/* 语言切换 */}
-          <div className="absolute right-0 top-0 z-10 flex items-center gap-1">
-            <button onClick={toggleTheme}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border transition-all" title={loc("theme.toggle")} aria-label={loc("theme.toggle")}>
-              {theme === "dark" ? (
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-              ) : (
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-              )}
-            </button>
-            <button onClick={() => setLang(lang === "zh" ? "en" : "zh")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border transition-all">
-              <Globe className="w-3.5 h-3.5" />
-              <span>{lang === "zh" ? "English" : "中文"}</span>
-            </button>
-          </div>
-          <div className="relative">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary shadow-sm mb-4 ring-1 ring-primary/10">
-              <FileText className="w-6 h-6" />
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">{loc("app.title")}</h1>
-            <p className="text-muted-foreground mt-2 text-[15px] leading-relaxed max-w-sm mx-auto">
-              {loc("app.subtitle")}
-            </p>
-          </div>
+    <div className="h-screen flex flex-col bg-background">
+      {/* 顶部导航栏 */}
+      <header className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-border/60">
+        <div className="flex items-center gap-2">
+          <FileText className="w-5 h-5 text-primary" />
+          <span className="text-base font-semibold">{loc("app.title")}</span>
         </div>
+        <div className="flex items-center gap-1">
+          <button onClick={toggleTheme}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border transition-all" title={loc("theme.toggle")} aria-label={loc("theme.toggle")}>
+            {theme === "dark" ? (
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+            )}
+          </button>
+          <button onClick={() => setLang(lang === "zh" ? "en" : "zh")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border transition-all">
+            <Globe className="w-3.5 h-3.5" />
+            <span>{lang === "zh" ? "English" : "中文"}</span>
+          </button>
+        </div>
+      </header>
 
-        <Tabs defaultValue="upload" className="w-full" onValueChange={(v) => setActiveTab(v)}>
-          <TabsList className="grid grid-cols-3 w-full mb-8 rounded-xl p-1">
-            <TabsTrigger value="upload" className="rounded-lg py-2 data-[state=active]:shadow-sm"><Upload className="w-3.5 h-3.5 mr-1.5" />{loc("tab.upload")}</TabsTrigger>
-            <TabsTrigger value="settings" className="rounded-lg py-2 data-[state=active]:shadow-sm"><FileText className="w-3.5 h-3.5 mr-1.5" />{loc("tab.settings")}</TabsTrigger>
-            <TabsTrigger value="preview" className="rounded-lg py-2 data-[state=active]:shadow-sm"><Eye className="w-3.5 h-3.5 mr-1.5" />{loc("tab.preview")}</TabsTrigger>
-          </TabsList>
+      {/* 主内容区 */}
+      <div className="flex-1 overflow-hidden">
+        <ThreePanelLayout
+          left={
+            <ChatPanel onToggle={() => setChatCollapsed((prev) => !prev)} />
+          }
+          leftCollapsed={chatCollapsed}
+          middle={
+            <div className="h-full overflow-y-auto p-4 space-y-6">
+              {/* 上传区域 */}
+              <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-4">
 
-          {/* Tab 1: 上传 */}
-          <TabsContent value="upload" className="tab-content rounded-xl bg-card ring-1 ring-foreground/10 p-4">
             <h3 className="font-heading text-base leading-snug font-medium mb-4">{loc("input.title")}</h3>
             {/* 模式切换 */}
             <div className="flex gap-2 mb-4">
@@ -1353,10 +1349,12 @@ export default function Home() {
                 />
               </div>
             )}
-          </TabsContent>
+              </div>
 
-          {/* Tab 2: 设置 */}
-          <TabsContent value="settings" className="tab-content rounded-xl bg-card ring-1 ring-foreground/10 p-4 space-y-6">
+              <Separator />
+
+              {/* 设置区域 */}
+              <div className="rounded-xl bg-card ring-1 ring-foreground/10 p-4 space-y-6">
           <div className="flex flex-row items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <h3 className="font-heading text-base leading-snug font-medium">{loc("settings.title")}</h3>
@@ -1676,91 +1674,65 @@ export default function Home() {
                 <p className="text-xs text-muted-foreground/60">{loc("font.empty")}</p>
               )}
             </div>
-          </TabsContent>
-
-          {/* Tab 3: 预览 + 下载 */}
-          <TabsContent value="preview" className="space-y-6 tab-content">
-            <PreviewSection elements={elements} docParagraphs={previewData} loading={previewLoading} headerConfig={headerConfig} loc={loc} />
-
-            <div className="flex flex-col items-center gap-5 py-4">
-              {loading ? (
-                <div className="flex flex-col items-center gap-3 w-full max-w-xs">
-                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full animate-[progress_2s_ease-in-out_infinite]" style={{ width: "60%" }} />
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    {loc("submit.progress")}
-                  </div>
-                </div>
-              ) : (
-              <Button size="lg" disabled={loading || (inputMode === "file" && !file) || (inputMode === "text" && !textContent.trim())}
-                onClick={handleSubmit} className="min-w-[220px] shadow-sm" title={loc("submit.tooltip")}>
-                <FileText className="w-4 h-4 mr-2" />
-                {loc("submit.format")}
-              </Button>
-              )}
-              {error && (
-                <div className="flex items-start gap-3 bg-destructive/10 dark:bg-destructive/15 text-destructive text-sm rounded-lg border border-destructive/20 dark:border-destructive/30 p-3 w-full max-w-md mx-auto" role="alert">
-                  <div className="flex-1 space-y-1">
-                    <p className="leading-relaxed">{error}</p>
-                    {errorSuggestion && <p className="text-xs text-destructive/70 leading-relaxed">{errorSuggestion}</p>}
-                    <button onClick={handleSubmit} className="text-xs font-medium text-destructive underline underline-offset-2 hover:text-destructive/80 transition-colors">
-                      {loc("submit.retry")}
-                    </button>
-                  </div>
-                  <button onClick={clearError} className="p-0.5 rounded hover:bg-destructive/10 shrink-0 mt-0.5 transition-colors" aria-label={loc("error.close")}>
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-              {resultUrl && (
-                <div className="flex flex-col items-center gap-3">
-                  <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-500">
-                    <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zM7 4.5a.5.5 0 0 1 1 0v4.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7 9.293V4.5z"/></svg>
-                    {loc("submit.complete")}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input value={downloadFilename} onChange={(e) => setDownloadFilename(e.target.value)}
-                      className="w-36 h-9 text-sm" placeholder={loc("submit.filename")} />
-                    <span className="text-sm text-muted-foreground">.docx</span>
-                  </div>
-                  <a href={resultUrl} download={`${downloadFilename || "formatted"}.docx`}>
-                    <Button size="lg" className="shadow-sm"><Download className="w-4 h-4 mr-2" />{loc("submit.download")}</Button>
-                  </a>
-                </div>
-              )}
+              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+          }
+          right={
+            <div className="h-full overflow-y-auto p-4 space-y-6">
+              <PreviewSection elements={elements} docParagraphs={previewData} loading={previewLoading} headerConfig={headerConfig} loc={loc} />
 
-        {/* Floating CTA — visible on upload/settings tabs when content is ready */}
-        {activeTab !== "preview" && !loading && !resultUrl && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-10 w-full max-w-3xl px-4">
-            <div className="bg-card border border-border/60 rounded-xl shadow-lg backdrop-blur-sm p-3 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                {inputMode === "file" && file ? (
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FileText className="w-4 h-4 text-primary shrink-0" />
-                    <span className="text-sm text-muted-foreground truncate">{file.name}</span>
-                  </div>
-                ) : inputMode === "text" && textContent.trim() ? (
-                  <div className="flex items-center gap-2">
-                    <Type className="w-4 h-4 text-primary shrink-0" />
-                    <span className="text-sm text-muted-foreground">{textContent.trim().split("\n").filter(Boolean).length} {loc("input.paragraphs")}</span>
+              <div className="flex flex-col items-center gap-5 py-4">
+                {loading ? (
+                  <div className="flex flex-col items-center gap-3 w-full max-w-xs">
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full animate-[progress_2s_ease-in-out_infinite]" style={{ width: "60%" }} />
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      {loc("submit.progress")}
+                    </div>
                   </div>
                 ) : (
-                  <span className="text-sm text-muted-foreground/60">{loc("submit.ready")}</span>
+                <Button size="lg" disabled={loading || (inputMode === "file" && !file) || (inputMode === "text" && !textContent.trim())}
+                  onClick={handleSubmit} className="min-w-[220px] shadow-sm" title={loc("submit.tooltip")}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  {loc("submit.format")}
+                </Button>
+                )}
+                {error && (
+                  <div className="flex items-start gap-3 bg-destructive/10 dark:bg-destructive/15 text-destructive text-sm rounded-lg border border-destructive/20 dark:border-destructive/30 p-3 w-full max-w-md mx-auto" role="alert">
+                    <div className="flex-1 space-y-1">
+                      <p className="leading-relaxed">{error}</p>
+                      {errorSuggestion && <p className="text-xs text-destructive/70 leading-relaxed">{errorSuggestion}</p>}
+                      <button onClick={handleSubmit} className="text-xs font-medium text-destructive underline underline-offset-2 hover:text-destructive/80 transition-colors">
+                        {loc("submit.retry")}
+                      </button>
+                    </div>
+                    <button onClick={clearError} className="p-0.5 rounded hover:bg-destructive/10 shrink-0 mt-0.5 transition-colors" aria-label={loc("error.close")}>
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+                {resultUrl && (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-500">
+                      <svg className="w-4 h-4" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zM7 4.5a.5.5 0 0 1 1 0v4.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7 9.293V4.5z"/></svg>
+                      {loc("submit.complete")}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input value={downloadFilename} onChange={(e) => setDownloadFilename(e.target.value)}
+                        className="w-36 h-9 text-sm" placeholder={loc("submit.filename")} />
+                      <span className="text-sm text-muted-foreground">.docx</span>
+                    </div>
+                    <a href={resultUrl} download={`${downloadFilename || "formatted"}.docx`}>
+                      <Button size="lg" className="shadow-sm"><Download className="w-4 h-4 mr-2" />{loc("submit.download")}</Button>
+                    </a>
+                  </div>
                 )}
               </div>
-              <Button size="default" disabled={loading || (inputMode === "file" && !file) || (inputMode === "text" && !textContent.trim())}
-                onClick={handleSubmit} className="shadow-sm shrink-0">
-                <FileText className="w-4 h-4 mr-2" />
-                {loc("submit.format")}
-              </Button>
             </div>
-          </div>
-        )}
+          }
+        />
       </div>
     </div>
   );
