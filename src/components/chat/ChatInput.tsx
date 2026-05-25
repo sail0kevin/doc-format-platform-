@@ -48,11 +48,13 @@ export default function ChatInput({ onSend, loading, placeholder }: ChatInputPro
           rows={1}
           className="flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20 min-h-[36px] max-h-[120px]"
           disabled={loading}
+          aria-label="聊天输入"
         />
         <button
           onClick={handleSend}
           disabled={!text.trim() || loading}
           className="shrink-0 w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          aria-label="发送"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </button>

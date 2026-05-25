@@ -7,11 +7,10 @@ import ChatInput from "./ChatInput";
 import { ChatMessage as ChatMessageType } from "./types";
 
 interface ChatPanelProps {
-  collapsed: boolean;
   onToggle: () => void;
 }
 
-export default function ChatPanel({ collapsed, onToggle }: ChatPanelProps) {
+export default function ChatPanel({ onToggle }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessageType[]>([
     {
       id: "welcome",
@@ -22,7 +21,7 @@ export default function ChatPanel({ collapsed, onToggle }: ChatPanelProps) {
   ]);
   const [loading, setLoading] = useState(false);
 
-  const handleSend = async (text: string) => {
+  const handleSend = (text: string) => {
     const userMsg: ChatMessageType = {
       id: `user-${Date.now()}`,
       role: "user",
@@ -63,11 +62,11 @@ export default function ChatPanel({ collapsed, onToggle }: ChatPanelProps) {
       </div>
 
       {/* 消息列表 */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4" role="log" aria-label="聊天消息">
         {messages.map((msg) => (
           <ChatMessage key={msg.id} message={msg} />
         ))}
-        {messages.length === 1 && (
+        {messages.length === 1 && messages[0].id === "welcome" && (
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground/50 gap-2">
             <MessageSquare className="w-8 h-8" />
             <p className="text-xs">输入排版需求，AI 帮你配置格式</p>
