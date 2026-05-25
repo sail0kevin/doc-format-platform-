@@ -31,6 +31,8 @@ import {
 import ThreePanelLayout from "@/components/layout/ThreePanelLayout";
 import ChatPanel from "@/components/chat/ChatPanel";
 import { useLocale } from "@/lib/lang";
+import { AgentProvider } from "@/lib/agent/react/agent-provider";
+import { ToolContext } from "@/lib/agent/tools/types";
 
 // ── 类型 ──────────────────────────────────────────────────
 
@@ -1240,8 +1242,61 @@ export default function Home() {
     finally { setLoading(false); isSubmittingRef.current = false; }
   };
 
+  // ── AI Agent ───────────────────────────────────────────
+  const buildContext = useCallback((): ToolContext => ({
+    elements: elements as any,
+    pageMargins: pageMargins,
+    headerConfig: headerConfig,
+    preset,
+    canUndo: historyIdx > 0,
+    canRedo: historyIdx < history.length - 1,
+  }), [elements, pageMargins, headerConfig, preset, historyIdx, history]);
+
+  const handleToolCall = useCallback((toolName: string, args: Record<string, any>) => {
+    switch (toolName) {
+      case "apply_preset":
+        applyPreset(args.presetName);
+        break;
+      case "add_element":
+        if (args.type && args.label) {
+          const wordStylesArr = args.wordStyles
+            ? String(args.wordStyles).split(/[,，]/).map((s: string) => s.trim()).filter(Boolean)
+            : [];
+          const newEl = {
+            id: `agent-${Date.now()}`,
+            label: args.label,
+            type: args.type as "heading" | "body",
+            wordStyles: wordStylesArr,
+            config: args.type === "body"
+              ? { font: "宋体", size: "12", bold: false, align: "justify", space_before: "0", space_after: "0", color: "000000", line_spacing: "1.5", first_line_indent: "0.74" }
+              : { font: "黑体", size: "14", bold: true, align: "left", space_before: "12", space_after: "6", color: "000000", line_spacing: "1.5" },
+          };
+          setElements((prev: any[]) => [...prev, newEl]);
+        }
+        break;
+      case "remove_element":
+        setElements((prev: any[]) => prev.filter((e: any) => e.id !== args.elementId));
+        break;
+      case "update_config":
+        setElements((prev: any[]) => prev.map((e: any) =>
+          e.id === args.elementId ? { ...e, config: { ...e.config, [args.key]: args.value } } : e
+        ));
+        break;
+      case "set_margins":
+        if (args.margins) setPageMargins(args.margins);
+        break;
+      case "undo":
+        undo();
+        break;
+      case "redo":
+        redo();
+        break;
+    }
+  }, []);
+
   // ── UI ────────────────────────────────────────────────
   return (
+    <AgentProvider buildContext={buildContext} onToolCall={handleToolCall}>
     <div className="h-screen flex flex-col bg-background">
       {/* 顶部导航栏 */}
       <header className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-border/60">
@@ -1746,33 +1801,7 @@ export default function Home() {
         />
       </div>
 
-      {/* 底部浮动栏：显示当前文档状态 + 快速格式化按钮 */}
-      {!loading && !resultUrl && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-10 w-full max-w-3xl px-4">
-          <div className="bg-card border border-border/60 rounded-xl shadow-lg backdrop-blur-sm p-3 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              {inputMode === "file" && file ? (
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-sm text-muted-foreground truncate">{file.name}</span>
-                </div>
-              ) : inputMode === "text" && textContent.trim() ? (
-                <div className="flex items-center gap-2">
-                  <Type className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-sm text-muted-foreground">{textContent.trim().split("\n").filter(Boolean).length} {loc("input.paragraphs")}</span>
-                </div>
-              ) : (
-                <span className="text-sm text-muted-foreground/60">{loc("submit.ready")}</span>
-              )}
-            </div>
-            <Button size="default" disabled={loading || (inputMode === "file" && !file) || (inputMode === "text" && !textContent.trim())}
-              onClick={handleSubmit} className="shadow-sm shrink-0">
-              <FileText className="w-4 h-4 mr-2" />
-              {loc("submit.format")}
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
+    </AgentProvider>
   );
 }
