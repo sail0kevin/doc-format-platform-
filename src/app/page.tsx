@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import ThreePanelLayout from "@/components/layout/ThreePanelLayout";
 import ChatPanel from "@/components/chat/ChatPanel";
-import FloatingActionButton from "@/components/layout/FloatingActionButton";
 import { useLocale } from "@/lib/lang";
 
 // ── 类型 ──────────────────────────────────────────────────
@@ -1261,6 +1260,13 @@ export default function Home() {
           <span className="text-base font-semibold">{loc("app.title")}</span>
         </div>
         <div className="flex items-center gap-1">
+          {/* 语言切换 */}
+          <button onClick={() => setLang(lang === "zh" ? "en" : "zh")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border transition-all">
+            <Globe className="w-3.5 h-3.5" />
+            <span>{lang === "zh" ? "EN" : "中文"}</span>
+          </button>
+          {/* 主题切换 */}
           <button onClick={toggleTheme}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border transition-all" title={loc("theme.toggle")} aria-label={loc("theme.toggle")}>
             {theme === "dark" ? (
@@ -1268,11 +1274,6 @@ export default function Home() {
             ) : (
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
             )}
-          </button>
-          <button onClick={() => setLang(lang === "zh" ? "en" : "zh")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border transition-all">
-            <Globe className="w-3.5 h-3.5" />
-            <span>{lang === "zh" ? "EN" : "中文"}</span>
           </button>
         </div>
       </header>
@@ -1745,13 +1746,33 @@ export default function Home() {
         />
       </div>
 
-      <FloatingActionButton
-        lang={lang}
-        onToggleLang={() => setLang(lang === "zh" ? "en" : "zh")}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-        loc={loc}
-      />
+      {/* 底部浮动栏：显示当前文档状态 + 快速格式化按钮 */}
+      {!loading && !resultUrl && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-10 w-full max-w-3xl px-4">
+          <div className="bg-card border border-border/60 rounded-xl shadow-lg backdrop-blur-sm p-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              {inputMode === "file" && file ? (
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-sm text-muted-foreground truncate">{file.name}</span>
+                </div>
+              ) : inputMode === "text" && textContent.trim() ? (
+                <div className="flex items-center gap-2">
+                  <Type className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-sm text-muted-foreground">{textContent.trim().split("\n").filter(Boolean).length} {loc("input.paragraphs")}</span>
+                </div>
+              ) : (
+                <span className="text-sm text-muted-foreground/60">{loc("submit.ready")}</span>
+              )}
+            </div>
+            <Button size="default" disabled={loading || (inputMode === "file" && !file) || (inputMode === "text" && !textContent.trim())}
+              onClick={handleSubmit} className="shadow-sm shrink-0">
+              <FileText className="w-4 h-4 mr-2" />
+              {loc("submit.format")}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
