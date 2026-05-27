@@ -14,6 +14,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import mammoth from "mammoth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,7 @@ import {
   Upload, Download, FileText, Loader2,
   ChevronDown, ChevronRight, X, Plus, Check,
   GripVertical, Copy, Save, Pencil, Trash2, Type, FileUp, Eye,
-  Undo2, Redo2, Globe, PanelLeft
+  Undo2, Redo2, Globe, PanelLeft, FolderOpen
 } from "lucide-react";
 import ThreePanelLayout from "@/components/layout/ThreePanelLayout";
 import ChatPanel from "@/components/chat/ChatPanel";
@@ -143,23 +144,23 @@ const ALIGNS = [ "left", "center", "right", "justify" ];
 
 const DEFAULT_ELEMENTS: ElementDef[] = [
   {
-    id: "title", label: "大标题", type: "heading",
-    wordStyles: ["Heading 1", "heading1", "1 heading 1", "标题 1", "标题1", "title"],
+    id: "title", label: "一级标题", type: "heading",
+    wordStyles: ["Heading 1"],
     config: { font: "黑体", size: "22", bold: true, align: "center", space_before: "0", space_after: "12", color: "000000", line_spacing: "1.5" },
   },
   {
-    id: "subtitle", label: "副标题", type: "heading",
-    wordStyles: ["Heading 2", "heading2", "2 heading 2", "标题 2", "标题2", "subtitle"],
+    id: "subtitle", label: "二级标题", type: "heading",
+    wordStyles: ["Heading 2"],
     config: { font: "黑体", size: "16", bold: false, align: "center", space_before: "0", space_after: "6", color: "333333", line_spacing: "1.5" },
   },
   {
-    id: "heading", label: "小标题", type: "heading",
-    wordStyles: ["Heading 3", "heading3", "3 heading 3", "标题 3", "标题3", "Heading 4", "heading4", "4 heading 4", "标题 4", "Heading 5", "heading5", "5 heading 5", "标题 5"],
+    id: "heading", label: "三级标题", type: "heading",
+    wordStyles: ["Heading 3"],
     config: { font: "黑体", size: "14", bold: true, align: "left", space_before: "12", space_after: "6", color: "000000", line_spacing: "1.5" },
   },
   {
     id: "body", label: "正文", type: "body",
-    wordStyles: ["Normal", "normal", "正文", "body text"],
+    wordStyles: ["Normal"],
     config: { font: "宋体", size: "12", bold: false, align: "justify", space_before: "0", space_after: "0", color: "000000", line_spacing: "1.5", first_line_indent: "0.74" },
   },
 ];
@@ -269,14 +270,21 @@ function parseTextToParagraphs(text: string, elements: ElementDef[]): {
     return bodyId;
   };
 
-  /** 判断是否为强标题信号（编号模式、首行等） */
+  /** 判断是否为强标题信号 */
   const detectStrong = (line: string, idx: number): 1 | 2 | 3 | null => {
+    // Markdown 标题语法
+    if (/^#{3,}\s/.test(line)) return 3;
+    if (/^##\s/.test(line)) return 2;
+    if (/^#\s/.test(line)) return 1;
+    // 中文编号章节（一、二、三、...）→ 二级标题
     if (/^(第[一二三四五六七八九十百千\d]+[章节篇部]|附录)/.test(line)) return 1;
     if (/^[一二三四五六七八九十]+[、．]/.test(line)) return 2;
+    // 数字编号：2.1.1 → 三级，2.1 → 三级，1. → 二级
     if (/^\d+\.\d+\.\d+/.test(line) && line.length <= 25) return 3;
-    if (/^\d+\.\d+/.test(line) && line.length <= 25) return 2;
+    if (/^\d+\.\d+/.test(line) && line.length <= 25) return 3;  // 2.1, 2.2 → 三级标题
     if (/^\d+[.、)]/.test(line) && line.length <= 20) return 2;
     if (/^[（(][一二三四五六七八九十\d]+[）)]/.test(line) && line.length <= 20) return 3;
+    // 首行特殊
     if (idx === 0 && line.length < 60) return 1;
     return null;
   };
@@ -289,13 +297,22 @@ function parseTextToParagraphs(text: string, elements: ElementDef[]): {
     && !/[、；：]/.test(line)
     && !line.includes('→')
     && !/^[-•*▪▶]/.test(line)
+    // 过滤 Markdown 分割线
+    && !/^-{3,}$/.test(line)
+    && !/^_{3,}$/.test(line)
+    && !/^\*{3,}$/.test(line)
+  );
+
+  /** 判断是否为 Markdown 分割线/纯符号行，应忽略 */
+  const isDivider = (line: string): boolean => (
+    /^-{3,}$/.test(line) || /^_{3,}$/.test(line) || /^\*{3,}$/.test(line)
   );
 
   // ── Phase 1: 初步判断 ──
   const raw: { level: 1 | 2 | 3 | null; text: string; weak: boolean }[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (!line) continue;
+    if (!line || isDivider(line)) continue;
     const strong = detectStrong(line, raw.length);
     const weak = !strong && isWeakCandidate(line);
     raw.push({
@@ -661,17 +678,19 @@ function ElementPanel({
   );
 }
 
-// ── 子组件：格式预览 ─────────────────────────────────────
-function PreviewSection({ elements, docParagraphs, loading, headerConfig, loc }: {
+// ── 子组件：格式预览（WPS 风格）─────────────────────────
+function PreviewSection({ elements, docParagraphs, loading, headerConfig, paragraphOverrides, onOverrideChange, loc }: {
   elements: ElementDef[];
   docParagraphs: ParagraphInfo[] | null;
   loading: boolean;
   headerConfig?: HeaderConfig;
+  paragraphOverrides: Record<number, string>;
+  onOverrideChange: (index: number, elementId: string) => void;
   loc: (key: string, params?: Record<string, string>) => string;
 }) {
   const hasDoc = docParagraphs && docParagraphs.length > 0;
+  const [editingParagraph, setEditingParagraph] = useState<number | null>(null);
 
-  // 文档统计
   const stats = hasDoc ? (() => {
     const totalChars = docParagraphs!.reduce((s, p) => s + p.text.length, 0);
     const cnChars = docParagraphs!.reduce((s, p) => s + (p.text.match(/[一-鿿]/g)?.length || 0), 0);
@@ -679,6 +698,14 @@ function PreviewSection({ elements, docParagraphs, loading, headerConfig, loc }:
     const estPages = Math.max(1, Math.round(totalChars / 1500));
     return { paragraphs: docParagraphs!.length, chars: totalChars, words: cnChars + enWords, pages: estPages };
   })() : null;
+
+  /** 标题层级对应的左侧指示条颜色 */
+  const headingBar = (el: ElementDef): { color: string; w: string } | null => {
+    if (el.type !== "heading") return null;
+    if (el.wordStyles.some(s => /heading 1|标题 1|^title$/i.test(s))) return { color: "#6366f1", w: "4px" };
+    if (el.wordStyles.some(s => /heading 2|标题 2|subtitle/i.test(s))) return { color: "#3b82f6", w: "3px" };
+    return { color: "#06b6d4", w: "2px" };
+  };
 
   return (
     <Card>
@@ -697,126 +724,147 @@ function PreviewSection({ elements, docParagraphs, loading, headerConfig, loc }:
           {loading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* 页眉/页码预览 */}
-        {headerConfig && (headerConfig.showHeader || headerConfig.showPageNumber) && hasDoc && (
-          <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/40 border border-border/30 text-xs text-muted-foreground">
-            <div className="flex items-center gap-2">
-              {headerConfig.showHeader && (
-                <span className="flex items-center gap-1">
-                  <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider">{loc("preview.header")}:</span>
-                  <span className="font-medium text-foreground/70">
-                    {headerConfig.useChapterHeader ? loc("header.chapter_hint") : (headerConfig.text || `—`)}
-                  </span>
-                </span>
+      <CardContent>
+        {hasDoc ? (
+          // ── WPS 风格：白色纸张 + 阴影 ──
+          <div className="bg-muted/30 rounded-xl p-6 flex justify-center">
+            <div className="w-full max-w-[210mm] bg-white rounded-lg shadow-[0_2px_12px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.05)] p-8 space-y-3">
+              {/* 页眉 */}
+              {headerConfig?.showHeader && (
+                <div className="text-xs text-gray-400 pb-2 border-b border-gray-200 mb-4">
+                  {headerConfig.useChapterHeader
+                    ? loc("header.chapter_hint")
+                    : (headerConfig.text || `—`)}
+                </div>
+              )}
+
+              {/* 段落 */}
+              {(() => {
+                const items = docParagraphs!.slice(0, 60);
+                // 应用段落覆盖
+                const resolvedItems = items.map((p) => ({
+                  ...p,
+                  element: paragraphOverrides[p.index] ?? p.element,
+                }));
+                const groups: { el: ElementDef; items: typeof docParagraphs }[] = [];
+                for (const p of resolvedItems) {
+                  const prev = groups[groups.length - 1];
+                  const el = elements.find((e) => e.id === p.element);
+                  const canMerge = el?.type === "body";
+                  if (prev && prev.el.id === p.element && canMerge) {
+                    prev.items.push(p);
+                  } else if (el) {
+                    groups.push({ el, items: [p] });
+                  }
+                }
+                return groups.map((group, gi) => {
+                  const el = group.el;
+                  const c = el.config;
+                  const fontSizePt = parseFloat(c.size);
+                  const fontSizePx = fontSizePt * 1.33;
+                  const bar = headingBar(el);
+                  const alignMap: Record<string, string> = { left: "left", center: "center", right: "right", justify: "justify" };
+                  const isHeading = el.type === "heading";
+                  return (
+                    <div key={gi} className="flex items-stretch gap-2">
+                      {/* 左侧标记：色条 + 元素名称（可点击切换） */}
+                      <div className="shrink-0 flex flex-col items-center gap-1 pt-0.5 relative" style={{ minWidth: "32px" }}>
+                        {bar && <div className="w-1 rounded-full" style={{ height: "100%", backgroundColor: bar.color }} />}
+                        <button
+                          className="text-[9px] text-muted-foreground/60 leading-none whitespace-nowrap hover:text-foreground hover:bg-muted/50 rounded px-1 py-0.5 cursor-pointer transition-colors"
+                          onClick={() => setEditingParagraph(editingParagraph === gi ? null : gi)}
+                          title="点击切换段落类型"
+                        >
+                          {el.label}
+                        </button>
+                        {/* 下拉选择菜单 */}
+                        {editingParagraph === gi && (
+                          <div className="absolute left-0 top-6 z-50 bg-white dark:bg-gray-800 border border-border rounded-lg shadow-lg py-1 min-w-[80px]">
+                            {elements.map((opt) => (
+                              <button
+                                key={opt.id}
+                                className={`w-full text-left px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors ${
+                                  opt.id === el.id ? "bg-primary/10 text-primary font-medium" : ""
+                                }`}
+                                onClick={() => {
+                                  // 更新覆盖：为当前组的所有段落设置新元素
+                                  for (const item of group.items!) {
+                                    onOverrideChange(item.index, opt.id);
+                                  }
+                                  setEditingParagraph(null);
+                                }}
+                              >
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {/* 内容 */}
+                      <div className="flex-1 min-w-0">
+                        {group.items.map((p, i) => (
+                          <div key={p.index} style={{
+                            fontFamily: `"${c.font}", sans-serif`, fontSize: `${fontSizePx}px`,
+                            fontWeight: c.bold ? 700 : 400, color: `#${c.color}`,
+                            textAlign: (alignMap[c.align] || "left") as React.CSSProperties["textAlign"],
+                            lineHeight: parseFloat(c.line_spacing),
+                            marginTop: i === 0 ? `${parseFloat(c.space_before)}pt` : "0",
+                            marginBottom: i === group.items.length - 1 ? `${parseFloat(c.space_after)}pt` : "0",
+                            textIndent: c.first_line_indent ? `${parseFloat(c.first_line_indent)}em` : undefined,
+                          }}>
+                            {i > 0 && isHeading ? "" : p.text.length > 150 ? p.text.slice(0, 150) + "…" : p.text}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+
+              {/* 页码 */}
+              {headerConfig?.showPageNumber && (
+                <div className="text-center text-xs text-gray-400 pt-4 border-t border-gray-200 mt-4">1</div>
               )}
             </div>
-            {headerConfig.showPageNumber && (
-              <span className="flex items-center gap-1">
-                <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider">{loc("preview.page")}</span>
-                <span className="font-mono text-foreground/70">1</span>
-              </span>
-            )}
           </div>
-        )}
-
-        {hasDoc ? (
-          // ── 文档实际段落预览（合并相邻同类型段落）────
-          (() => {
-            const groups: { element: string; items: typeof docParagraphs }[] = [];
-            const items = docParagraphs.slice(0, 60);
-            for (const p of items) {
-              const prev = groups[groups.length - 1];
-              const el = elements.find((e) => e.id === p.element);
-              const canMerge = el?.type === "body";
-              if (prev && prev.element === p.element && canMerge) {
-                prev.items.push(p);
-              } else {
-                groups.push({ element: p.element, items: [p] });
-              }
-            }
-            return groups.map((group) => {
-              const el = elements.find((e) => e.id === group.element);
-              if (!el) return null;
-              const c = el.config;
-              const fontSizePt = parseFloat(c.size);
-              const fontSizePx = fontSizePt * 1.33;
-              const alignMap: Record<string, string> = { left: "left", center: "center", right: "right", justify: "justify" };
-              const isMerged = group.items.length > 1;
-
-              return (
-                <div key={group.items[0].index} className="flex items-start gap-3 pb-3 border-b border-border/50 last:border-0 last:pb-0">
-                  <div className="shrink-0 flex flex-col items-end gap-0.5 min-w-[70px]">
-                    <span className="text-[10px] text-muted-foreground">{group.items[0].style}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                      el.type === "heading"
-                        ? el.wordStyles.some(s => /heading 1|标题 1|^title$/i.test(s))
-                          ? "bg-indigo-100 text-indigo-700"
-                          : el.wordStyles.some(s => /heading 2|标题 2|subtitle/i.test(s))
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-sky-100 text-sky-700"
-                        : "bg-emerald-100 text-emerald-700"}`}>
-                      {el.type === "heading"
-                        ? el.wordStyles.some(s => /heading 1|标题 1|^title$/i.test(s)) ? "H1"
-                          : el.wordStyles.some(s => /heading 2|标题 2|subtitle/i.test(s)) ? "H2"
-                          : "H3"
-                        : loc("badge.body")}{isMerged ? ` ×${group.items.length}` : ""}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {group.items.map((p, i) => (
-                      <div key={p.index} style={{
-                        fontFamily: `"${c.font}", sans-serif`, fontSize: `${fontSizePx}px`,
-                        fontWeight: c.bold ? 700 : 400, color: `#${c.color}`,
-                        textAlign: (alignMap[c.align] || "left") as React.CSSProperties["textAlign"],
-                        lineHeight: i === group.items.length - 1 ? parseFloat(c.line_spacing) : parseFloat(c.line_spacing),
-                        marginTop: i === 0 ? `${parseFloat(c.space_before) * 1.33}px` : undefined,
-                        marginBottom: i === group.items.length - 1 ? `${parseFloat(c.space_after) * 1.33}px` : undefined,
-                        textIndent: c.first_line_indent ? `${parseFloat(c.first_line_indent) * 37.8}px` : undefined,
-                      }}>
-                        {p.text.length > 120 ? p.text.slice(0, 120) + "…" : p.text}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            });
-          })()
         ) : (
-          // ── 退化为示例文字预览 ──
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-muted/50">
-              <Eye className="w-3.5 h-3.5 text-muted-foreground/60" />
-              <p className="text-xs text-muted-foreground/60">{loc("preview.example")} · {loc("preview.example_desc")}</p>
-            </div>
-            {elements.filter((e) => e.wordStyles.length > 0).map((el) => {
-              const c = el.config;
-              const fontSizePx = parseFloat(c.size) * 1.33;
-              const alignMap: Record<string, string> = { left: "left", center: "center", right: "right", justify: "justify" };
-              return (
-                <div key={el.id} className="border-b border-border/40 dark:border-border/50 pb-3 last:border-0 last:pb-0">
-                  <p className="text-[10px] text-muted-foreground mb-1">{el.label} · {el.wordStyles.slice(0, 2).join(", ")}</p>
-                  <div style={{
-                    fontFamily: `"${c.font}", sans-serif`, fontSize: `${fontSizePx}px`,
-                    fontWeight: c.bold ? 700 : 400, color: `#${c.color}`,
-                    textAlign: (alignMap[c.align] || "left") as React.CSSProperties["textAlign"], lineHeight: parseFloat(c.line_spacing),
-                    marginTop: `${parseFloat(c.space_before) * 1.33}px`,
-                    marginBottom: `${parseFloat(c.space_after) * 1.33}px`,
-                    textIndent: c.first_line_indent ? `${parseFloat(c.first_line_indent) * 37.8}px` : undefined,
-                    padding: "4px 0",
-                  }}>
-                    {el.label} — 预览文字示例 0123 ABC abc
+          // ── 无文档时的示例预览 ──
+          <div className="bg-muted/30 rounded-xl p-6 flex justify-center">
+            <div className="w-full max-w-[210mm] bg-white rounded-lg shadow-[0_2px_12px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.05)] p-8 space-y-3">
+              {elements.filter((e) => e.wordStyles.length > 0).map((el) => {
+                const c = el.config;
+                const fontSizePx = parseFloat(c.size) * 1.33;
+                const bar = headingBar(el);
+                const alignMap: Record<string, string> = { left: "left", center: "center", right: "right", justify: "justify" };
+                return (
+                  <div key={el.id} className="flex items-stretch gap-2">
+                    {/* 左侧标记：色条 + 元素名称 */}
+                    <div className="shrink-0 flex flex-col items-center gap-1 pt-0.5" style={{ minWidth: "32px" }}>
+                      {bar && <div className="w-1 rounded-full" style={{ height: "100%", backgroundColor: bar.color }} />}
+                      <span className="text-[9px] text-muted-foreground/60 leading-none whitespace-nowrap">{el.label}</span>
+                    </div>
+                    <div className="flex-1 min-w-0" style={{
+                      fontFamily: `"${c.font}", sans-serif`, fontSize: `${fontSizePx}px`,
+                      fontWeight: c.bold ? 700 : 400, color: `#${c.color}`,
+                      textAlign: (alignMap[c.align] || "left") as React.CSSProperties["textAlign"],
+                      lineHeight: parseFloat(c.line_spacing),
+                      marginTop: `${parseFloat(c.space_before)}pt`,
+                      marginBottom: `${parseFloat(c.space_after)}pt`,
+                      textIndent: c.first_line_indent ? `${parseFloat(c.first_line_indent)}em` : undefined,
+                    }}>
+                      {el.label} — 预览文字示例 0123 ABC abc
+                    </div>
                   </div>
+                );
+              })}
+              {elements.filter(e => e.wordStyles.length > 0).length === 0 && (
+                <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
+                  <Eye className="w-8 h-8 opacity-30" />
+                  <p className="text-sm">{loc("preview.empty")}</p>
+                  <p className="text-xs opacity-60">{loc("preview.empty_hint")}</p>
                 </div>
-              );
-            })}
-          </div>
-        )}
-        {!loading && !hasDoc && elements.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
-            <Eye className="w-8 h-8 opacity-30" />
-            <p className="text-sm">{loc("preview.empty")}</p>
-            <p className="text-xs opacity-60">{loc("preview.empty_hint")}</p>
+              )}
+            </div>
           </div>
         )}
       </CardContent>
@@ -830,6 +878,7 @@ export default function Home() {
   const [fileDragOver, setFileDragOver] = useState(false);
   const [inputMode, setInputMode] = useState<"file" | "text">("file");
   const [textContent, setTextContent] = useState("");
+  const [fileTextContent, setFileTextContent] = useState("");
   const [mode, setMode] = useState<"preset" | "custom">("preset");
   const [preset, setPreset] = useState<string>("essay");
   const [elements, setElements] = useState<ElementDef[]>(() => cloneElements(DEFAULT_ELEMENTS));
@@ -866,6 +915,8 @@ export default function Home() {
   // 文档预览
   const [previewData, setPreviewData] = useState<ParagraphInfo[] | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  // 段落元素覆盖：key=段落index, value=元素ID
+  const [paragraphOverrides, setParagraphOverrides] = useState<Record<number, string>>({});
 
 
   // API
@@ -972,7 +1023,17 @@ export default function Home() {
       if (saved) {
         if (saved.mode) setMode(saved.mode);
         if (saved.preset) setPreset(saved.preset);
-        if (saved.elements) setElements(cloneElements(saved.elements));
+        if (saved.elements) {
+          // 去重：修复可能存在的重复 ID
+          const seen = new Set<string>();
+          const deduped = saved.elements.map((el: any, i: number) => {
+            let id = el.id;
+            if (seen.has(id)) { id = `${id}_${i}`; }
+            seen.add(id);
+            return { ...el, id };
+          });
+          setElements(cloneElements(deduped));
+        }
         if (saved.pageMargins) setPageMargins(saved.pageMargins);
         if (saved.headerConfig) setHeaderConfig(saved.headerConfig);
         if (saved.customFonts) setCustomFonts(saved.customFonts);
@@ -1023,7 +1084,20 @@ export default function Home() {
         else setPreviewData(null);
       })
       .catch(() => setPreviewData(null))
-      .finally(() => setPreviewLoading(false));
+      .finally(() => {
+        setPreviewLoading(false);
+        setParagraphOverrides({}); // 新文件时重置覆盖
+      });
+  }, [file, inputMode]);
+
+  // ── 文件上传后自动提取文字内容（给 Agent 使用） ─────────
+  useEffect(() => {
+    if (!file || inputMode !== "file") { setFileTextContent(""); return; }
+    file.arrayBuffer().then((buf) => {
+      return mammoth.extractRawText({ arrayBuffer: buf });
+    }).then((result) => {
+      setFileTextContent(result.value || "");
+    }).catch(() => setFileTextContent(""));
   }, [file, inputMode]);
 
   // ── 文字输入模式自动解析预览 ────────────────────────────
@@ -1034,6 +1108,7 @@ export default function Home() {
     }
     const { paragraphs } = parseTextToParagraphs(textContent, elements);
     setPreviewData(paragraphs);
+    setParagraphOverrides({}); // 文本变更时重置覆盖
   }, [textContent, inputMode, elements]);
 
   // ── 派生 ──────────────────────────────────────────────
@@ -1243,14 +1318,26 @@ export default function Home() {
   };
 
   // ── AI Agent ───────────────────────────────────────────
-  const buildContext = useCallback((): ToolContext => ({
-    elements: elements as any,
-    pageMargins: pageMargins,
-    headerConfig: headerConfig,
-    preset,
-    canUndo: historyIdx > 0,
-    canRedo: historyIdx < history.length - 1,
-  }), [elements, pageMargins, headerConfig, preset, historyIdx, history.length]);
+  const buildContext = useCallback((): ToolContext => {
+    // 计算当前文档实际使用的元素ID
+    const usedIds = new Set<string>();
+    if (previewData) {
+      for (const p of previewData) {
+        const overrideId = paragraphOverrides[p.index];
+        usedIds.add(overrideId ?? p.element);
+      }
+    }
+    return {
+      elements: elements as any,
+      pageMargins: pageMargins,
+      headerConfig: headerConfig,
+      preset,
+      canUndo: historyIdx > 0,
+      canRedo: historyIdx < history.length - 1,
+      rawText: inputMode === "file" ? fileTextContent : textContent,
+      usedElementIds: Array.from(usedIds),
+    };
+  }, [elements, pageMargins, headerConfig, preset, historyIdx, history.length, textContent, fileTextContent, inputMode, previewData, paragraphOverrides]);
 
   const handleToolCall = useCallback((toolName: string, args: Record<string, any>) => {
     switch (toolName) {
@@ -1263,7 +1350,7 @@ export default function Home() {
             ? String(args.wordStyles).split(/[,，]/).map((s: string) => s.trim()).filter(Boolean)
             : [];
           const newEl = {
-            id: `agent-${Date.now()}`,
+            id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             label: args.label,
             type: args.type as "heading" | "body",
             wordStyles: wordStylesArr,
@@ -1282,8 +1369,16 @@ export default function Home() {
           e.id === args.elementId ? { ...e, config: { ...e.config, [args.key]: args.value } } : e
         ));
         break;
+      case "update_label":
+        setElements((prev: any[]) => prev.map((e: any) =>
+          e.id === args.elementId ? { ...e, label: args.label } : e
+        ));
+        break;
       case "set_margins":
         if (args.margins) setPageMargins(args.margins);
+        break;
+      case "update_header":
+        setHeaderConfig((p) => ({ ...p, [args.key]: args.key === "showHeader" || args.key === "useChapterHeader" || args.key === "showPageNumber" ? args.value === "true" : args.value }));
         break;
       case "undo":
         undo();
@@ -1291,8 +1386,21 @@ export default function Home() {
       case "redo":
         redo();
         break;
+      case "set_paragraph_style":
+        if (args.paragraphIndex !== undefined && args.elementId) {
+          setParagraphOverrides((prev) => ({
+            ...prev,
+            [Number(args.paragraphIndex)]: String(args.elementId),
+          }));
+        }
+        break;
+      case "cleanup_elements":
+        // cleanup_elements 工具返回 unusedIds，这里执行实际删除
+        // 注意：这个 case 不会直接被调用，cleanup_elements 返回建议后
+        // Agent 会调用 remove_element 来逐个删除
+        break;
     }
-  }, [applyPreset, undo, redo]);
+  }, [applyPreset, undo, redo, setHeaderConfig]);
 
   // ── UI ────────────────────────────────────────────────
   return (
@@ -1746,7 +1854,10 @@ export default function Home() {
           }
           right={
             <div className="h-full overflow-y-auto p-4 space-y-6">
-              <PreviewSection elements={elements} docParagraphs={previewData} loading={previewLoading} headerConfig={headerConfig} loc={loc} />
+              <PreviewSection elements={elements} docParagraphs={previewData} loading={previewLoading} headerConfig={headerConfig}
+                paragraphOverrides={paragraphOverrides}
+                onOverrideChange={(index, elementId) => setParagraphOverrides((prev) => ({ ...prev, [index]: elementId }))}
+                loc={loc} />
 
               <div className="flex flex-col items-center gap-5 py-4">
                 {loading ? (
@@ -1760,11 +1871,19 @@ export default function Home() {
                     </div>
                   </div>
                 ) : (
-                <Button size="lg" disabled={loading || (inputMode === "file" && !file) || (inputMode === "text" && !textContent.trim())}
-                  onClick={handleSubmit} className="min-w-[220px] shadow-sm" title={loc("submit.tooltip")}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  {loc("submit.format")}
-                </Button>
+                <div className="flex flex-col items-center gap-3">
+                  {/* 输出文件命名 */}
+                  <div className="flex items-center gap-2">
+                    <Input value={downloadFilename} onChange={(e) => setDownloadFilename(e.target.value)}
+                      className="w-44 h-9 text-sm" placeholder={loc("submit.filename")} />
+                    <span className="text-sm text-muted-foreground">.docx</span>
+                  </div>
+                  <Button size="lg" disabled={loading || (inputMode === "file" && !file) || (inputMode === "text" && !textContent.trim())}
+                    onClick={handleSubmit} className="min-w-[220px] shadow-sm" title={loc("submit.tooltip")}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    {loc("submit.format")}
+                  </Button>
+                </div>
                 )}
                 {error && (
                   <div className="flex items-start gap-3 bg-destructive/10 dark:bg-destructive/15 text-destructive text-sm rounded-lg border border-destructive/20 dark:border-destructive/30 p-3 w-full max-w-md mx-auto" role="alert">
@@ -1791,9 +1910,28 @@ export default function Home() {
                         className="w-36 h-9 text-sm" placeholder={loc("submit.filename")} />
                       <span className="text-sm text-muted-foreground">.docx</span>
                     </div>
-                    <a href={resultUrl} download={`${downloadFilename || "formatted"}.docx`}>
-                      <Button size="lg" className="shadow-sm"><Download className="w-4 h-4 mr-2" />{loc("submit.download")}</Button>
-                    </a>
+                    <div className="flex gap-2">
+                      <a href={resultUrl} download={`${downloadFilename || "formatted"}.docx`}>
+                        <Button size="lg" className="shadow-sm"><Download className="w-4 h-4 mr-2" />{loc("submit.download")}</Button>
+                      </a>
+                      <Button size="lg" variant="outline" className="shadow-sm" onClick={async () => {
+                        try {
+                          const res = await fetch(resultUrl);
+                          const blob = await res.blob();
+                          const handle = await (window as any).showSaveFilePicker({
+                            suggestedName: `${downloadFilename || "formatted"}.docx`,
+                            types: [{ description: "Word 文档", accept: { "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"] } }],
+                          });
+                          const writable = await handle.createWritable();
+                          await writable.write(blob);
+                          await writable.close();
+                        } catch (e: any) {
+                          if (e.name !== "AbortError") console.error(e);
+                        }
+                      }}>
+                        <FolderOpen className="w-4 h-4 mr-2" />{loc("submit.save_as")}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>

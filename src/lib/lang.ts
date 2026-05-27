@@ -92,6 +92,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "submit.format": { zh: "开始格式化", en: "Format Now" },
   "submit.progress": { zh: "正在格式化文档...", en: "Formatting document..." },
   "submit.download": { zh: "下载成品", en: "Download" },
+  "submit.save_as": { zh: "另存为", en: "Save As" },
   "submit.complete": { zh: "格式化完成", en: "Complete" },
   "submit.retry": { zh: "重试", en: "Retry" },
   "submit.filename": { zh: "文件名", en: "File Name" },
@@ -130,6 +131,7 @@ const translations: Record<string, Record<Lang, string>> = {
   "badge.h1": { zh: "H1", en: "H1" },
   "badge.h2": { zh: "H2", en: "H2" },
   "badge.h3": { zh: "H3", en: "H3" },
+  "badge.heading": { zh: "标题", en: "Heading" },
   "badge.body": { zh: "正文", en: "Body" },
   "elem.copy_suffix": { zh: "（副本）", en: " (Copy)" },
   "elem.rename": { zh: "重命名", en: "Rename" },
@@ -202,7 +204,7 @@ const translations: Record<string, Record<Lang, string>> = {
 
   // ── Chat Panel ──
   "chat.title": { zh: "AI 排版助手", en: "AI Format Assistant" },
-  "chat.welcome": { zh: "你好！我是排版助手。告诉我你想怎么格式化文档，比如「排成学术论文格式」或「标题用黑体加粗」", en: "Hi! I'm your format assistant. Tell me how you'd like to format your document, e.g. \"Academic essay style\" or \"Bold headings\"" },
+  "chat.welcome": { zh: "你好！我是排版助手小排。\n\n📌 使用步骤：\n1. 在左边「文字输入」里粘贴你的文字内容\n2. 在这里告诉我你想怎么排版（比如「排成学术论文格式」「标题加粗加大」）\n\n我会分析你的文字结构，自动配置对应的格式。", en: "Hi! I'm your format assistant.\n\n📌 Steps:\n1. Paste your text in the \"Text Input\" area on the left\n2. Tell me how you'd like it formatted (e.g. \"Academic essay style\", \"Make headings bold and larger\")\n\nI'll analyze your text structure and configure the formatting automatically." },
   "chat.placeholder": { zh: "输入排版需求…", en: "Describe your formatting…" },
   "chat.empty_hint": { zh: "输入排版需求，AI 帮你配置格式", en: "Describe your formatting needs, AI will configure it for you" },
   "chat.collapse": { zh: "折叠聊天面板", en: "Collapse chat panel" },

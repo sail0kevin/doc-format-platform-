@@ -22,11 +22,10 @@ export class AgentEngine {
   }
 
   async processUserInput(userText: string, context: ToolContext): Promise<AgentResult> {
-    const systemPrompt = buildSystemPrompt(this.tools, context);
     const toolDefs = this.tools.map(toolToLLMDef);
 
     const messages: LLMMessage[] = [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: buildSystemPrompt(this.tools, context) },
       ...this.history,
       { role: "user", content: userText },
     ];
@@ -34,18 +33,22 @@ export class AgentEngine {
     const toolCalls: AgentResult["toolCalls"] = [];
     let reply = "";
 
+    // ── ReAct 循环 ──
     for (let i = 0; i < this.config.maxToolCalls; i++) {
       const response = await this.client.chat(messages, toolDefs);
 
       if (!response.toolCalls || response.toolCalls.length === 0) {
         reply = response.content;
-        messages.push({ role: "assistant", content: response.content });
+        const msg: LLMMessage = { role: "assistant", content: response.content };
+        if (response.reasoningContent) msg.reasoning_content = response.reasoningContent;
+        messages.push(msg);
         break;
       }
 
-      // 如果 LLM 在调用工具的同时也有文本回复（推理过程），先保存
       if (response.content) {
-        messages.push({ role: "assistant", content: response.content });
+        const msg: LLMMessage = { role: "assistant", content: response.content };
+        if (response.reasoningContent) msg.reasoning_content = response.reasoningContent;
+        messages.push(msg);
       }
 
       for (const tc of response.toolCalls) {
@@ -55,11 +58,13 @@ export class AgentEngine {
           continue;
         }
 
-        messages.push({
+        const toolCallMsg: LLMMessage = {
           role: "assistant",
           content: null,
           tool_calls: [{ id: tc.id, type: "function", function: { name: tc.toolName, arguments: JSON.stringify(tc.args) } }],
-        });
+        };
+        if (response.reasoningContent) toolCallMsg.reasoning_content = response.reasoningContent;
+        messages.push(toolCallMsg);
 
         try {
           const result = await tool.execute(tc.args, context);
@@ -74,7 +79,7 @@ export class AgentEngine {
 
     this.history = messages.slice(1).slice(-this.config.maxHistoryLength);
 
-    return { reply: reply || "操作完成", toolCalls };
+    return { reply: reply || "收到，正在处理…", toolCalls };
   }
 
   clearHistory(): void {

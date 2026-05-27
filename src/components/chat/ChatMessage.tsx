@@ -40,6 +40,19 @@
 import { ChatMessage as ChatMessageType } from "./types";
 import { Bot, User } from "lucide-react";
 
+/** 把文本按段落拆分，支持换行显示 */
+function renderContent(text: string) {
+  // 按双换行拆段落，单换行变 <br>
+  const paragraphs = text.split(/\n\n+/);
+  return paragraphs.map((p, i) => (
+    <p key={i} className={i > 0 ? "mt-2" : ""}>
+      {p.split(/\n/).map((line, j) => (
+        j > 0 ? <span key={j}><br />{line}</span> : line
+      ))}
+    </p>
+  ));
+}
+
 /**
  * ChatMessage 组件的 Props
  * @property message - 要显示的消息数据
@@ -86,7 +99,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
             ? "bg-primary text-primary-foreground rounded-tr-md"
             : "bg-muted text-foreground rounded-tl-md"
         }`}>
-          {message.content}
+          {renderContent(message.content)}
         </div>
         {/* 发送时间：10px 灰色文字，格式如 "14:30" */}
         <p className="text-[10px] text-muted-foreground/50 mt-1">

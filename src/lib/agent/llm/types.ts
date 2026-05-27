@@ -5,6 +5,8 @@ import { Tool } from "../tools/types";
 export interface LLMMessage {
   role: "system" | "user" | "assistant" | "tool";
   content: string | null;
+  /** DeepSeek 推理内容，必须在后续请求中原样传回 */
+  reasoning_content?: string;
   tool_calls?: Array<{
     id: string;
     type: "function";
@@ -15,6 +17,8 @@ export interface LLMMessage {
 
 export interface LLMResponse {
   content: string;
+  /** DeepSeek 推理内容，需传给引擎保存 */
+  reasoningContent?: string;
   toolCalls: Array<{ id: string; toolName: string; args: Record<string, any> }>;
 }
 

@@ -365,11 +365,15 @@ class DocumentFormatter:
                 rPr.insert(0, rFonts)
             rFonts.set(qn("w:eastAsia"), rule["font"])
         if "size" in rule:
-            run.font.size = Pt(rule["size"])
+            run.font.size = Pt(self._to_number(rule["size"]))
         if "color" in rule:
             run.font.color.rgb = RGBColor.from_string(rule["color"])
         if "bold" in rule:
-            run.bold = rule["bold"]
+            # 将字符串 "true"/"false" 转为布尔值
+            bold_val = rule["bold"]
+            if isinstance(bold_val, str):
+                bold_val = bold_val.lower() == "true"
+            run.bold = bold_val
 
     def _set_outline_level(self, p, level: int):
         """设置段落的大纲级别，0=H1, 1=H2, 2=H3 ...
@@ -381,6 +385,15 @@ class DocumentFormatter:
         lvl.set(qn("w:val"), str(level))
         pPr.append(lvl)
 
+    def _to_number(self, val):
+        """将字符串数字转为 float，非数字返回原值"""
+        if isinstance(val, (int, float)):
+            return val
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return val
+
     def _format(self, p, idx: int = None):
         elem = self._identify_element(p, idx)
         rule = self.elements.get(elem) if self.elements else None
@@ -388,10 +401,10 @@ class DocumentFormatter:
             rule = DEFAULT_ELEMENTS.get(elem, DEFAULT_ELEMENTS["body"])
 
         pf = p.paragraph_format
-        if "line_spacing" in rule: pf.line_spacing = rule["line_spacing"]
-        if "space_before" in rule: pf.space_before = Pt(rule["space_before"])
-        if "space_after" in rule: pf.space_after = Pt(rule["space_after"])
-        if "first_line_indent" in rule: pf.first_line_indent = Cm(rule["first_line_indent"])
+        if "line_spacing" in rule: pf.line_spacing = self._to_number(rule["line_spacing"])
+        if "space_before" in rule: pf.space_before = Pt(self._to_number(rule["space_before"]))
+        if "space_after" in rule: pf.space_after = Pt(self._to_number(rule["space_after"]))
+        if "first_line_indent" in rule: pf.first_line_indent = Cm(self._to_number(rule["first_line_indent"]))
         if rule.get("align") in ALIGN_MAP: pf.alignment = ALIGN_MAP[rule["align"]]
 
         # 设置大纲级别，确保文档结构层级正确

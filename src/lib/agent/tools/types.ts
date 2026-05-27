@@ -29,6 +29,10 @@ export interface ToolContext {
   preset: string;
   canUndo: boolean;
   canRedo: boolean;
+  /** 文档文字内容（文字输入模式下的全文） */
+  rawText: string;
+  /** 当前文档实际使用的元素ID列表 */
+  usedElementIds: string[];
 }
 
 export interface Tool {
